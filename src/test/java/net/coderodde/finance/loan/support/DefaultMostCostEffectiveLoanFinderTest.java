@@ -3,6 +3,7 @@ package net.coderodde.finance.loan.support;
 import net.coderodde.finance.loan.Actor;
 import net.coderodde.finance.loan.ActorGraph;
 import net.coderodde.finance.loan.MostCostEffectiveLoan;
+import static org.junit.Assert.assertEquals;
 import org.junit.Test;
 
 /**
@@ -14,6 +15,8 @@ import org.junit.Test;
  * @version 1.6 (Mar 2, 2018)
  */
 public class DefaultMostCostEffectiveLoanFinderTest {
+    
+    private static final double EPSILON = 0.001;
     
     @Test
     public void test1() {
@@ -39,6 +42,39 @@ public class DefaultMostCostEffectiveLoanFinderTest {
         MostCostEffectiveLoan<String> loan = 
                 finder.findLenders(actorA, 35.0, 0.6);
         
-        System.out.println(loan);
+        assertEquals(35.0, loan.getReceivedPotential(), EPSILON);
+        assertEquals(35.0, loan.getRequestedPotential(), EPSILON);
+        
+        assertEquals(10.0, loan.getPotentialMapView().get(actorB), EPSILON);
+        assertEquals(20.0, loan.getPotentialMapView().get(actorC), EPSILON);
+        assertEquals(5.0,  loan.getPotentialMapView().get(actorD), EPSILON);
+        
+        assertEquals(actorA, loan.getDirectionMap().get(actorB));
+        assertEquals(actorB, loan.getDirectionMap().get(actorC));
+        assertEquals(actorC, loan.getDirectionMap().get(actorD));
+        
+        loan = finder.findLenders(actorA, 35.0, 0.5);
+        
+        assertEquals(30.0, loan.getReceivedPotential(), EPSILON);
+        assertEquals(35.0, loan.getRequestedPotential(), EPSILON);
+        
+        assertEquals(10.0, loan.getPotentialMapView().get(actorB), EPSILON);
+        assertEquals(20.0, loan.getPotentialMapView().get(actorC), EPSILON);
+        
+        assertEquals(actorA, loan.getDirectionMap().get(actorB));
+        assertEquals(actorB, loan.getDirectionMap().get(actorC));
+        
+        loan = finder.findLenders(actorA, 50.0, 0.7);
+        
+        assertEquals(45.0, loan.getReceivedPotential(), EPSILON);
+        assertEquals(50.0, loan.getRequestedPotential(), EPSILON);
+        
+        assertEquals(10.0, loan.getPotentialMapView().get(actorB), EPSILON);
+        assertEquals(20.0, loan.getPotentialMapView().get(actorC), EPSILON);
+        assertEquals(15.0, loan.getPotentialMapView().get(actorD), EPSILON);
+        
+        assertEquals(actorA, loan.getDirectionMap().get(actorB));
+        assertEquals(actorB, loan.getDirectionMap().get(actorC));
+        assertEquals(actorC, loan.getDirectionMap().get(actorD));
     }   
 }
