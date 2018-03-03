@@ -128,10 +128,11 @@ public final class MostCostEffectiveLoan<I> {
                 .append(requestedPotential)
                 .append(",\nmaximum interest rate = ")
                 .append(maximumInterestRate)
-                .append(",\npotentials: \n");
+                .append(",\npotentials:");
         
         for (Map.Entry<Actor<I>, Double> entry : potentialMap.entrySet()) {
-            stringBuilder.append(entry.getKey())
+            stringBuilder.append("\n")
+                         .append(entry.getKey())
                          .append(" -> ")
                          .append(entry.getValue());
         }

@@ -50,7 +50,7 @@ public final class DefaultMostCostEffectiveLoanFinder<I>
                     new HeapNode(
                         initialIncomingActor,
                         actor,
-                        actorGraph.getActorPotential(initialIncomingActor)
+                        actorGraph.getInterestRate(initialIncomingActor, actor)
                     )
                 );
             }
