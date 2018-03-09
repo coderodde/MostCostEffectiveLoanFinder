@@ -21,9 +21,13 @@ public class ActorGraphTest {
         Actor<String> bob = new Actor<>("Bob");
         ActorGraph<String> graph = new ActorGraph<>();
         
+        assertEquals(0, graph.getNumberOfActors());
         graph.addActor(alice, 500.0);
+        assertEquals(1, graph.getNumberOfActors());
         graph.addActor(janice, 300.0);
+        assertEquals(2, graph.getNumberOfActors());
         graph.addActor(bob, 100.0);
+        assertEquals(3, graph.getNumberOfActors());
         
         assertEquals(500.0, graph.getActorPotential(alice), EPSILON);
         assertEquals(300.0, graph.getActorPotential(janice), EPSILON);
@@ -41,8 +45,13 @@ public class ActorGraphTest {
         graph.addActor(janice, 300.0);
         graph.addActor(bob, 100.0);
         
+        assertEquals(0, graph.getNumberOfArcs());
         graph.addArc(alice, bob, 0.2);
+        assertEquals(1, graph.getNumberOfArcs());
         graph.addArc(janice, bob, 0.199);
+        assertEquals(2, graph.getNumberOfArcs());
+        graph.addArc(alice, bob, 0.2); // Must not increment the arc count.
+        assertEquals(2, graph.getNumberOfArcs());
         
         Collection<Actor<String>> bobsLenders = graph.getIncomingArcs(bob);
         
@@ -51,6 +60,7 @@ public class ActorGraphTest {
         assertTrue(bobsLenders.contains(janice));
         
         graph.addArc(alice, janice, 0.3);
+        assertEquals(3, graph.getNumberOfArcs());
         
         Collection<Actor<String>> janicesLenders =
                 graph.getIncomingArcs(janice);
@@ -82,8 +92,11 @@ public class ActorGraphTest {
         assertTrue(graph.hasArc(alice, bob));
         assertTrue(graph.hasArc(janice, bob));
         assertTrue(graph.hasArc(alice, janice));
+        assertEquals(3, graph.getNumberOfActors());
+        assertEquals(3, graph.getNumberOfArcs());
         
         graph.removeActor(bob);
+        assertEquals(1, graph.getNumberOfArcs());
         
         assertTrue(graph.hasArc(alice, janice));
     }
@@ -122,15 +135,21 @@ public class ActorGraphTest {
         graph.addArc(alice, janice, 0.3);
         
         assertTrue(graph.hasArc(janice, bob));
+        assertEquals(3, graph.getNumberOfArcs());
         graph.removeArc(janice, bob);
+        assertEquals(2, graph.getNumberOfArcs());
         assertFalse(graph.hasArc(janice, bob));
         
         assertTrue(graph.hasArc(alice, bob));
+        assertEquals(2, graph.getNumberOfArcs());
         graph.removeArc(alice, bob);
+        assertEquals(1, graph.getNumberOfArcs());
         assertFalse(graph.hasArc(alice, bob));
         
         assertTrue(graph.hasArc(alice, janice));
+        assertEquals(1, graph.getNumberOfArcs());
         graph.removeArc(alice, janice);
+        assertEquals(0, graph.getNumberOfArcs());
         assertFalse(graph.hasArc(alice, janice));
     }
     
@@ -153,12 +172,15 @@ public class ActorGraphTest {
         graph2.addArc(actor2b, actor2c, 200);
         graph2.addArc(actor2c, actor2a, 200);
         
+        assertEquals(3, graph2.getNumberOfArcs());
+        
         assertEquals(graph1, actor1.getActorGraph());
         assertEquals(graph2, actor2a.getActorGraph());
         assertEquals(graph2, actor2b.getActorGraph());
         assertEquals(graph2, actor2c.getActorGraph());
         
         graph1.addActor(actor2a, 200);
+        assertEquals(1, graph2.getNumberOfArcs());
         
         assertEquals(graph1, actor1.getActorGraph());
         assertEquals(graph1, actor2a.getActorGraph());

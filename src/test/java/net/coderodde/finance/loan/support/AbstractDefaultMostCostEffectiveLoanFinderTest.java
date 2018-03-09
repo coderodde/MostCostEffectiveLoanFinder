@@ -3,21 +3,28 @@ package net.coderodde.finance.loan.support;
 import net.coderodde.finance.loan.Actor;
 import net.coderodde.finance.loan.ActorGraph;
 import net.coderodde.finance.loan.MostCostEffectiveLoan;
+import net.coderodde.finance.loan.MostCostEffectiveLoanFinder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import org.junit.Test;
 
 /**
  * Tests
- * {@link net.coderodde.finance.loan.support.DefaultMostCostEffectiveLoanFinder}
+ * {@link net.coderodde.finance.loan.support.BinaryHeapMostCostEffectiveLoanFinder}
  * .
  * 
  * @author Rodion "rodde" Efremov
  * @version 1.6 (Mar 2, 2018)
  */
-public class DefaultMostCostEffectiveLoanFinderTest {
+public abstract class AbstractDefaultMostCostEffectiveLoanFinderTest {
     
     private static final double EPSILON = 0.001;
+    private final MostCostEffectiveLoanFinder<String> finder;
+    
+    protected AbstractDefaultMostCostEffectiveLoanFinderTest(
+            MostCostEffectiveLoanFinder<String> finder) {
+        this.finder = finder;
+    }
     
     @Test
     public void test1() {
@@ -36,9 +43,6 @@ public class DefaultMostCostEffectiveLoanFinderTest {
         graph.addArc(actorD, actorC, 0.2);
         graph.addArc(actorC, actorB, 0.15);
         graph.addArc(actorB, actorA, 0.1);
-        
-        DefaultMostCostEffectiveLoanFinder<String> finder = 
-                new DefaultMostCostEffectiveLoanFinder<>();
         
         MostCostEffectiveLoan<String> loan = 
                 finder.findLenders(actorA, 35.0, 0.6);
@@ -95,9 +99,6 @@ public class DefaultMostCostEffectiveLoanFinderTest {
         graph.addArc(actorB, actorA, 0.4);
         graph.addArc(actorC, actorA, 0.3);
         graph.addArc(actorD, actorA, 0.2);
-        
-        DefaultMostCostEffectiveLoanFinder<String> finder = 
-                new DefaultMostCostEffectiveLoanFinder<>();
         
         MostCostEffectiveLoan<String> loan = 
                 finder.findLenders(actorA, 5.0, 0.5);

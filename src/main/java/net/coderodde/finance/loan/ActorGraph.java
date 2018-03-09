@@ -39,6 +39,29 @@ public final class ActorGraph<I> {
             new HashMap<>();
     
     /**
+     * Caches the current number of arcs in this actor graph.
+     */
+    private int numberOfArcs;
+    
+    /**
+     * Returns the number of actors present in this actor graph.
+     * 
+     * @return the number of actors.
+     */
+    public int getNumberOfActors() {
+        return potentialMap.size();
+    }
+    
+    /**
+     * Returns the number of arcs in this actor graph.
+     * 
+     * @return the number of arcs. 
+     */
+    public int getNumberOfArcs() {
+        return numberOfArcs;
+    }
+    
+    /**
      * Adds a new actor to the graph with a specified potential. If the input 
      * actor is already in this graph, the potential and maximum interest rate
      * are updated.
@@ -71,6 +94,8 @@ public final class ActorGraph<I> {
     public void removeActor(Actor<I> actor) {
         Objects.requireNonNull(actor, "The input actor is null.");
         potentialMap.remove(actor);
+        numberOfArcs -= incomingActors.get(actor).size();
+        numberOfArcs -= interestRateMap.get(actor).size();
         
         for (Actor<I> incomingActor : incomingActors.get(actor)) {
             interestRateMap.get(incomingActor).remove(actor);
@@ -98,6 +123,12 @@ public final class ActorGraph<I> {
                        double interestRate) {
         checkArc(sourceActor, targetActor);
         checkNotSelfLoop(sourceActor, targetActor);
+        
+        if (!interestRateMap.get(sourceActor).containsKey(targetActor)) {
+            // Once here, the input arc does not exist in this graph so 
+            // increment the number of arcs counter.
+            numberOfArcs++;
+        }
         
         interestRateMap.get(sourceActor)
                        .put(targetActor, 
@@ -129,6 +160,7 @@ public final class ActorGraph<I> {
         checkArc(sourceActor, targetActor);
         
         if (interestRateMap.get(sourceActor).containsKey(targetActor)) {
+            numberOfArcs--;
             interestRateMap.get(sourceActor).remove(targetActor);
             incomingActors.get(targetActor).remove(sourceActor);
         }

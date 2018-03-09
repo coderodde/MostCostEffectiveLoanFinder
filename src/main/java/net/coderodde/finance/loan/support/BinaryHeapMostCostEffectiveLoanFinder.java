@@ -8,19 +8,20 @@ import java.util.Queue;
 import java.util.Set;
 import net.coderodde.finance.loan.Actor;
 import net.coderodde.finance.loan.ActorGraph;
-import net.coderodde.finance.loan.MostCostEffecitveLoanFinder;
 import net.coderodde.finance.loan.MostCostEffectiveLoan;
 import net.coderodde.finance.loan.Utils;
+import net.coderodde.finance.loan.MostCostEffectiveLoanFinder;
 
 /**
- * This class implements the default most cost effective loan finder.
+ * This class implements the default most cost effective loan finder using a 
+ * binary heap.
  * 
  * @author Rodion "rodde" Efremov
  * @version 1.6 (Mar 1, 2018)
  * @param <I> the actor identity type.
  */
-public final class DefaultMostCostEffectiveLoanFinder<I>
-        implements MostCostEffecitveLoanFinder<I> {
+public final class BinaryHeapMostCostEffectiveLoanFinder<I>
+        implements MostCostEffectiveLoanFinder<I> {
 
     /**
      * {@inheritDoc } 
@@ -29,6 +30,7 @@ public final class DefaultMostCostEffectiveLoanFinder<I>
     public MostCostEffectiveLoan<I> findLenders(Actor<I> actor, 
                                                 double requestedPotential,
                                                 double maximumInterestRate) {
+        System.out.println("Binary");
         // Sanity checks:
         checkActorBelongsToGraph(actor);
         Utils.checkRequestedPotential(requestedPotential);
@@ -37,8 +39,8 @@ public final class DefaultMostCostEffectiveLoanFinder<I>
         // Algorithm state:
         Queue<HeapNode<I>> open = new PriorityQueue<>();
         Set<Actor<I>> closed = new HashSet<>();
-        Map<Actor<I>, Double> principalMap = new HashMap<>();
-        Map<Actor<I>, Actor<I>> directionMap = new HashMap<>();
+        Map<Actor<I>, Double> solutionPotentialFunction = new HashMap<>();
+        Map<Actor<I>, Actor<I>> directionFunction = new HashMap<>();
         double currentPrincipal = 0.0;
         
         // Loop initialization:
@@ -60,15 +62,15 @@ public final class DefaultMostCostEffectiveLoanFinder<I>
             HeapNode<I> currentHeapNode = open.remove();
             Actor<I> currentActor = currentHeapNode.getActor();
             Actor<I> previousActor = currentHeapNode.getPreviousActor();
-            double currentInterestRate =
+            double effectiveInterestRate =
                     currentHeapNode.getEffectiveInterestRate();
             double potentialIncrease = 
                     Math.min(actorGraph.getActorPotential(currentActor),
                              requestedPotential - currentPrincipal);
 
             currentPrincipal += potentialIncrease;
-            principalMap.put(currentActor, potentialIncrease);
-            directionMap.put(currentActor, previousActor);
+            solutionPotentialFunction.put(currentActor, potentialIncrease);
+            directionFunction.put(currentActor, previousActor);
             closed.add(currentActor);
             
             for (Actor<I> lendingActor :
@@ -76,7 +78,7 @@ public final class DefaultMostCostEffectiveLoanFinder<I>
                 if (!closed.contains(lendingActor)) {
                     double nextInterestRate = 
                             combineInterestRates(
-                                    currentInterestRate,
+                                    effectiveInterestRate,
                                     actorGraph.getInterestRate(lendingActor, 
                                                                currentActor));
 
@@ -94,8 +96,8 @@ public final class DefaultMostCostEffectiveLoanFinder<I>
                 currentPrincipal,
                 requestedPotential,
                 maximumInterestRate,
-                principalMap,
-                directionMap);
+                solutionPotentialFunction,
+                directionFunction);
     }
     
     private double combineInterestRates(double interestRate1,
