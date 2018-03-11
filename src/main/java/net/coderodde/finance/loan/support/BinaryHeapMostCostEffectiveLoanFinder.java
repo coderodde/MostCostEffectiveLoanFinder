@@ -30,7 +30,6 @@ public final class BinaryHeapMostCostEffectiveLoanFinder<I>
     public MostCostEffectiveLoan<I> findLenders(Actor<I> actor, 
                                                 double requestedPotential,
                                                 double maximumInterestRate) {
-        System.out.println("Binary");
         // Sanity checks:
         checkActorBelongsToGraph(actor);
         Utils.checkRequestedPotential(requestedPotential);
@@ -60,31 +59,31 @@ public final class BinaryHeapMostCostEffectiveLoanFinder<I>
         
         while (!open.isEmpty() && currentPrincipal < requestedPotential) {
             HeapNode<I> currentHeapNode = open.remove();
-            Actor<I> currentActor = currentHeapNode.getActor();
-            Actor<I> previousActor = currentHeapNode.getPreviousActor();
+            Actor<I> targetActor = currentHeapNode.getTargetActor();
+            Actor<I> sourceActor = currentHeapNode.getSourceActor();
             double effectiveInterestRate =
                     currentHeapNode.getEffectiveInterestRate();
             double potentialIncrease = 
-                    Math.min(actorGraph.getActorPotential(currentActor),
+                    Math.min(actorGraph.getActorPotential(targetActor),
                              requestedPotential - currentPrincipal);
 
             currentPrincipal += potentialIncrease;
-            solutionPotentialFunction.put(currentActor, potentialIncrease);
-            directionFunction.put(currentActor, previousActor);
-            closed.add(currentActor);
+            solutionPotentialFunction.put(targetActor, potentialIncrease);
+            directionFunction.put(targetActor, sourceActor);
+            closed.add(targetActor);
             
             for (Actor<I> lendingActor :
-                    actorGraph.getIncomingArcs(currentActor)) {
+                    actorGraph.getIncomingArcs(targetActor)) {
                 if (!closed.contains(lendingActor)) {
                     double nextInterestRate = 
                             combineInterestRates(
                                     effectiveInterestRate,
                                     actorGraph.getInterestRate(lendingActor, 
-                                                               currentActor));
+                                                               targetActor));
 
                     if (nextInterestRate <= maximumInterestRate) {
                         open.add(new HeapNode<>(lendingActor,
-                                                currentActor, 
+                                                targetActor, 
                                                 nextInterestRate));
                     }
                 }
@@ -105,39 +104,6 @@ public final class BinaryHeapMostCostEffectiveLoanFinder<I>
         return interestRate1 + interestRate2 + interestRate1 * interestRate2;
     }
     
-    private static final class HeapNode<I> implements Comparable<HeapNode<I>> {
-
-        private final Actor<I> actor;
-        private final Actor<I> previousActor;
-        private final double effectiveInterestRate;
-        
-        HeapNode(Actor<I> actor, 
-                 Actor<I> previousActor,
-                 double effectiveInterestRate) {
-            this.actor = actor;
-            this.previousActor = previousActor;
-            this.effectiveInterestRate = effectiveInterestRate;
-        }
-        
-        Actor<I> getActor() {
-            return actor;
-        }
-        
-        Actor<I> getPreviousActor() {
-            return previousActor;
-        }
-        
-        double getEffectiveInterestRate() {
-            return effectiveInterestRate;
-        }
-        
-        @Override
-        public int compareTo(HeapNode<I> o) {
-            return Double.compare(effectiveInterestRate, 
-                                  o.effectiveInterestRate);
-        }
-    }
-
     private void checkActorBelongsToGraph(Actor<I> actor) {
         if (actor.getActorGraph() == null) {
             throw new IllegalStateException(

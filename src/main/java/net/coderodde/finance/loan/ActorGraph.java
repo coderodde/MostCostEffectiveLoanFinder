@@ -167,6 +167,15 @@ public final class ActorGraph<I> {
     }
     
     /**
+     * Returns a view of the actors.
+     * 
+     * @return a view of the actors. 
+     */
+    public Set<Actor<I>> getActorSet() {
+        return Collections.unmodifiableSet(potentialMap.keySet());
+    }
+    
+    /**
      * Clears this graph.
      */
     public void clear() {
