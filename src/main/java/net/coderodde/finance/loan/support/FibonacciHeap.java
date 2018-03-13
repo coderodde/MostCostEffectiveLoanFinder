@@ -127,6 +127,12 @@ public final class FibonacciHeap<E extends Comparable<? super E>>
         return z.element;
     }
     
+    @Override
+    public void clear() {
+        this.minimumNode = null;
+        this.size = 0;
+    }
+    
     private void consolidate() {
         int arrayCapacity = ((int) Math.floor(Math.log(size) / LOG_PHI)) + 1;
         ensureArrayCapacity(arrayCapacity);

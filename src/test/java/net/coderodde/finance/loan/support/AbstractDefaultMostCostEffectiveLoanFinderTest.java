@@ -3,7 +3,6 @@ package net.coderodde.finance.loan.support;
 import net.coderodde.finance.loan.Actor;
 import net.coderodde.finance.loan.ActorGraph;
 import net.coderodde.finance.loan.MostCostEffectiveLoan;
-import net.coderodde.finance.loan.MostCostEffectiveLoanFinder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import org.junit.Test;
@@ -19,10 +18,10 @@ import org.junit.Test;
 public abstract class AbstractDefaultMostCostEffectiveLoanFinderTest {
     
     private static final double EPSILON = 0.001;
-    private final MostCostEffectiveLoanFinder<String> finder;
+    private final AbstractMostCostEffectiveLoanFinder<String> finder;
     
     protected AbstractDefaultMostCostEffectiveLoanFinderTest(
-            MostCostEffectiveLoanFinder<String> finder) {
+            AbstractMostCostEffectiveLoanFinder<String> finder) {
         this.finder = finder;
     }
     

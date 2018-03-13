@@ -25,11 +25,11 @@ final class HeapNode<I> implements Comparable<HeapNode<I>> {
      */
     private final double effectiveInterestRate;
     
-    HeapNode(Actor<I> targetActor,
-             Actor<I> sourceActor,
+    HeapNode(Actor<I> sourceActor,
+             Actor<I> targetActor,
              double effectiveInterestRate) {
-        this.targetActor = targetActor;
         this.sourceActor = sourceActor;
+        this.targetActor = targetActor;
         this.effectiveInterestRate = effectiveInterestRate;
     }
     

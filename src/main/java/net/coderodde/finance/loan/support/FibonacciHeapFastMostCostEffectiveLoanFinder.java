@@ -1,8 +1,11 @@
 package net.coderodde.finance.loan.support;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Queue;
+import java.util.Set;
 import net.coderodde.finance.loan.Actor;
 import net.coderodde.finance.loan.ActorGraph;
 import net.coderodde.finance.loan.MostCostEffectiveLoan;
@@ -24,28 +27,20 @@ public final class FibonacciHeapFastMostCostEffectiveLoanFinder<I>
     private ActorGraph<I> actorGraph;
     
     /**
-     * The matrix mapping an actor pair <code>(u, v)</code> to the effective
-     * interest rate from <code>u</code> to <code>v</code>.
-     */
-    private final Map<Actor<I>, 
-                      Map<Actor<I>, Double>> effectiveInterestRateMatrix;
-    
-    /**
      * Maps an actor to a sorted linked list of most cost-effective lenders.
      */
-    private final Map<Actor<I>, LenderListNode<I>> actorToLenderListMap;
+    private final Map<Actor<I>, LenderListNode<I>> actorToLenderListHeadMap;
     
-    public FibonacciHeapFastMostCostEffectiveLoanFinder(ActorGraph<I> actorGraph) {
+    public FibonacciHeapFastMostCostEffectiveLoanFinder(
+            ActorGraph<I> actorGraph) {
         this.actorGraph = 
                 Objects.requireNonNull(
                         actorGraph, 
                         "The input actor graph is null.");
         
         int actorGraphSize = actorGraph.getNumberOfActors();
-        this.effectiveInterestRateMatrix = new HashMap<>(actorGraphSize);
-        this.actorToLenderListMap = new HashMap<>(actorGraphSize);
-        createEffectiveInterestRateMatrix();
-        populateEffectiveInterestRateMatrix();
+        this.actorToLenderListHeadMap = new HashMap<>(actorGraphSize);
+        populateEffectiveInterestRateLists();
     }
     
     @Override
@@ -59,47 +54,91 @@ public final class FibonacciHeapFastMostCostEffectiveLoanFinder<I>
         return null;
     }
     
-    private void createEffectiveInterestRateMatrix() {
-        int actorGraphSize = actorGraph.getNumberOfActors();
-        
-        for (Actor<I> actor1 : actorGraph.getActorSet()) {
-            effectiveInterestRateMatrix.put(actor1, 
-                                            new HashMap<>(actorGraphSize));
-            
-            for (Actor<I> actor2 : actorGraph.getActorSet()) {
-                effectiveInterestRateMatrix.get(actor1).put(actor2, 0.0);
-            }
-        }
-    }
-    
-    private void populateEffectiveInterestRateMatrix() {
+    private void populateEffectiveInterestRateLists() {
         for (Actor<I> targetActor : actorGraph.getActorSet()) {
-            computeEffectiveInterestRateTree(targetActor);
+            computeEffectiveInterestRateList(targetActor);
         }
     }
     
     /**
      * Computes an entire loan tree leading to {@code startActor}.
      * 
-     * @param targetActor the target actor. 
+     * @param borrowingActor the borrowing actor. 
      */
-    private void computeEffectiveInterestRateTree(Actor<I> targetActor) {
+    private void computeEffectiveInterestRateList(Actor<I> targetActor) {
+        Queue<HeapNode<I>> open = new FibonacciHeap<>();
+        Set<Actor<I>> closed = new HashSet<>();
+        LenderListNode<I> lastLenderListNode = null;
         
+        // Priority queue initialization:
+        for (Actor<I> sourceActor 
+                : actorGraph.getIncomingArcs(targetActor)) {
+            open.add(new HeapNode<>(sourceActor,
+                                    targetActor, 
+                                    actorGraph
+                                        .getInterestRate(sourceActor,
+                                                         targetActor)));
+        }
+        
+        // The actual search:
+        while (!open.isEmpty()) {
+            HeapNode<I> currentHeapNode = open.remove();
+            Actor<I> currentSourceActor = currentHeapNode.getSourceActor();
+            
+            double effectiveInterestRate = 
+                    currentHeapNode.getEffectiveInterestRate();
+            closed.add(targetActor);
+            
+            if (lastLenderListNode == null) {
+                lastLenderListNode = 
+                        new LenderListNode<>(currentSourceActor,
+                                             effectiveInterestRate);
+                
+                actorToLenderListHeadMap.put(targetActor, lastLenderListNode);
+            } else {
+                LenderListNode<I> lenderListNode = 
+                        new LenderListNode<>(currentSourceActor, 
+                                             effectiveInterestRate);
+                
+                lastLenderListNode.setNextLenderListNode(lenderListNode);
+                lastLenderListNode = lenderListNode;
+            }
+            
+            for (Actor<I> lendingActor 
+                    : actorGraph.getIncomingArcs(currentSourceActor)) {
+                if (!closed.contains(lendingActor)) {
+                    double nextInterestRate = 
+                            combineInterestRates(
+                                    effectiveInterestRate,
+                                    actorGraph.getInterestRate(
+                                            lendingActor, 
+                                            currentSourceActor));
+                    
+                    open.add(new HeapNode<>(lendingActor, 
+                                            currentSourceActor, 
+                                            nextInterestRate));
+                }
+            }
+        }
+    }
+    
+    private static double combineInterestRates(double interestRate1,
+                                               double interestRate2) {
+        return interestRate1 + interestRate2 + interestRate1 * interestRate2;
     }
     
     private static final class LenderListNode<I> {
         private final Actor<I> actor;
         private final double effectiveInterestRate;
-        private LenderListNode<I> nextInterestRateMatrixEntry;
+        private LenderListNode<I> nextLenderListNode;
         
         LenderListNode(Actor<I> actor, double effectiveInterestRate) {
             this.actor = actor;
             this.effectiveInterestRate = effectiveInterestRate;
         }
         
-        void setNextInterestRateMatrixEntry(
-                LenderListNode<I> nextInterestRateMatrixEntry) {
-            this.nextInterestRateMatrixEntry = nextInterestRateMatrixEntry;
+        void setNextLenderListNode(LenderListNode<I> nextLenderListNode) {
+            this.nextLenderListNode = nextLenderListNode;
         }
         
         Actor<I> getActor() {
@@ -110,8 +149,8 @@ public final class FibonacciHeapFastMostCostEffectiveLoanFinder<I>
             return effectiveInterestRate;
         }
         
-        LenderListNode<I> getNextInterestRateMatrixEntry() {
-            return nextInterestRateMatrixEntry;
+        LenderListNode<I> getNextLenderListNode() {
+            return nextLenderListNode;
         }
     }
 }
