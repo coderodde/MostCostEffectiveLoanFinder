@@ -92,12 +92,14 @@ public final class ActorGraph<I> {
             if (actorBelongsToOtherGraph(actor)) {
                 // If the input actor belongs to another graph, we need to 
                 // disconnect it from there:
+                actor.getActorGraph().modificationCount++;
                 actor.getActorGraph().removeActor(actor);
             }
             
             actor.setOwnerActorGraph(this);
             interestRateMap.put(actor, new HashMap<>());
             incomingActors.put(actor, new HashSet<>());
+            modificationCount++;
         }
     }
     
@@ -122,6 +124,7 @@ public final class ActorGraph<I> {
         
         interestRateMap.remove(actor);
         incomingActors.remove(actor);
+        modificationCount++;
         actor.setOwnerActorGraph(null);
     }
     
@@ -149,6 +152,7 @@ public final class ActorGraph<I> {
                        .put(targetActor, 
                             Utils.checkInterestRate(interestRate));
         incomingActors.get(targetActor).add(sourceActor);
+        modificationCount++;
     }
     
     /**
@@ -178,6 +182,7 @@ public final class ActorGraph<I> {
             numberOfArcs--;
             interestRateMap.get(sourceActor).remove(targetActor);
             incomingActors.get(targetActor).remove(sourceActor);
+            modificationCount++;
         }
     }
     
@@ -194,6 +199,7 @@ public final class ActorGraph<I> {
      * Clears this graph.
      */
     public void clear() {
+        modificationCount += potentialMap.size();
         potentialMap.clear();
         interestRateMap.clear();
         incomingActors.clear();

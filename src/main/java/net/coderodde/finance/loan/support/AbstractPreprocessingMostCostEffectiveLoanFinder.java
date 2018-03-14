@@ -117,6 +117,7 @@ implements MostCostEffectiveLoanFinder<I> {
     private void preprocessSingleActor(Actor<I> startingActor) {
         open.clear();
         Set<Actor<I>> closed = new HashSet<>();
+        closed.add(startingActor);
         LenderListNode<I> lastLenderListNode = null;
         
         // Priority queue initialization:
@@ -142,7 +143,7 @@ implements MostCostEffectiveLoanFinder<I> {
                 lastLenderListNode = 
                         new LenderListNode<>(currentSourceActor,
                                              effectiveInterestRate);
-                actorToLenderListHeadMap.put(currentSourceActor,
+                actorToLenderListHeadMap.put(startingActor,
                                              lastLenderListNode);
             } else {
                 LenderListNode lenderListNode = 
