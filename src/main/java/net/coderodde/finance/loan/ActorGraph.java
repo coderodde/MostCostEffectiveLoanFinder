@@ -44,6 +44,12 @@ public final class ActorGraph<I> {
     private int numberOfArcs;
     
     /**
+     * Used for making sure that in preprocessing finders we the actor graph is
+     * not modified after it is preprocessed.
+     */
+    private int modificationCount;
+    
+    /**
      * Returns the number of actors present in this actor graph.
      * 
      * @return the number of actors.
@@ -59,6 +65,15 @@ public final class ActorGraph<I> {
      */
     public int getNumberOfArcs() {
         return numberOfArcs;
+    }
+    
+    /**
+     * Returns the current modification count of this graph.
+     * 
+     * @return the modification count.
+     */
+    public int getModificationCount() {
+        return modificationCount;
     }
     
     /**

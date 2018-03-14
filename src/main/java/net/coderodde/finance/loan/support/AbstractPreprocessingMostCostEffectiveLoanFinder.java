@@ -1,5 +1,6 @@
 package net.coderodde.finance.loan.support;
 
+import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -38,22 +39,81 @@ implements MostCostEffectiveLoanFinder<I> {
      */
     private final Map<Actor<I>, LenderListNode<I>> actorToLenderListHeadMap;
     
+    /**
+     * Caches the expected modification count of the actor graph.
+     */
+    private final int expectedModificationCount;
+    
     protected AbstractPreprocessingMostCostEffectiveLoanFinder(
             ActorGraph<I> actorGraph,
             Queue<HeapNode<I>> open) {
-        this.actorGraph = actorGraph;
+        this.actorGraph = 
+                Objects.requireNonNull(
+                        actorGraph, 
+                        "The input actor graph is null.");
         this.open = open;
         this.actorToLenderListHeadMap = 
                 new HashMap<>(actorGraph.getNumberOfActors());
+        this.expectedModificationCount = actorGraph.getModificationCount();
         preprocessGraph();
     }
+   
+    /**
+     * {@inheritDoc }
+     */
+    @Override
+    public MostCostEffectiveLoan<I> findLenders(Actor<I> actor, 
+                                                double requestedPotential,
+                                                double maximumInterestRate) {
+        Objects.requireNonNull(actor, "The input actor is null.");
+        checkActorBelongsToGraph(actor);
+        checkModificationCount();
+        Utils.checkRequestedPotential(requestedPotential);
+        Utils.checkMaximumInterestRate(maximumInterestRate);
+        
+        Map<Actor<I>, Double> solutionPotentialFunction = new HashMap<>();
+        Map<Actor<I>, Actor<I>> directionFunction = new HashMap<>();
+        double collectedPrincipal = 0.0;
+        Actor<I> previousActor = actor;
+        
+        for (LenderListNode<I> node = actorToLenderListHeadMap.get(actor);
+                node != null 
+                && collectedPrincipal < requestedPotential
+                && node.getEffectiveInterestRate() <= maximumInterestRate;
+                node = node.getNextLenderListNode()) {
+            Actor<I> lender = node.getActor();
+            double potentialIncrease =
+                    Math.min(requestedPotential - collectedPrincipal,
+                             actor.getActorGraph().getActorPotential(lender));
+            collectedPrincipal += potentialIncrease;
+            solutionPotentialFunction.put(lender, potentialIncrease);
+            directionFunction.put(lender, previousActor);
+            previousActor = lender;
+        }
+        
+        return new MostCostEffectiveLoan<>(actor,
+                                           collectedPrincipal,
+                                           requestedPotential,
+                                           maximumInterestRate,
+                                           solutionPotentialFunction,
+                                           directionFunction);
+    }
     
+    /**
+     * Preprocesses the entire actor graph.
+     */
     private void preprocessGraph() {
         for (Actor<I> startingActor : actorGraph.getActorSet()) {
             preprocessSingleActor(startingActor);
         }
     }
     
+    /**
+     * Preprocesses a single actor.
+     * 
+     * @param startingActor the target actor for which to build the list of
+     *                      lenders.
+     */
     private void preprocessSingleActor(Actor<I> startingActor) {
         open.clear();
         Set<Actor<I>> closed = new HashSet<>();
@@ -77,6 +137,7 @@ implements MostCostEffectiveLoanFinder<I> {
             
             closed.add(currentSourceActor);
             
+            // Deal with the lender list:
             if (lastLenderListNode == null) {
                 lastLenderListNode = 
                         new LenderListNode<>(currentSourceActor,
@@ -92,6 +153,7 @@ implements MostCostEffectiveLoanFinder<I> {
                 lastLenderListNode = lenderListNode;
             }
             
+            // Populate more into the priority queue:
             for (Actor<I> lendingActor 
                     : actorGraph.getIncomingArcs(currentSourceActor)) {
                 if (!closed.contains(lendingActor)) {
@@ -110,41 +172,22 @@ implements MostCostEffectiveLoanFinder<I> {
         }
     }
     
-    @Override
-    public MostCostEffectiveLoan<I> findLenders(Actor<I> actor, 
-                                                double requestedPotential,
-                                                double maximumInterestRate) {
-        Objects.requireNonNull(actor, "The input actor is null.");
-        checkActorBelongsToGraph(actor);
-        Utils.checkRequestedPotential(requestedPotential);
-        Utils.checkMaximumInterestRate(maximumInterestRate);
-        
-        Map<Actor<I>, Double> solutionPotentialFunction = new HashMap<>();
-        Map<Actor<I>, Actor<I>> directionFunction = new HashMap<>();
-        double collectedPrincipal = 0.0;
-        Actor<I> previousActor = actor;
-        
-        for (LenderListNode<I> node = actorToLenderListHeadMap.get(actor);
-                node != null && collectedPrincipal < requestedPotential;
-                node = node.getNextLenderListNode()) {
-            Actor<I> lender = node.getActor();
-            double potentialIncrease =
-                    Math.min(requestedPotential - collectedPrincipal,
-                             actor.getActorGraph().getActorPotential(lender));
-            collectedPrincipal += potentialIncrease;
-            solutionPotentialFunction.put(lender, potentialIncrease);
-            directionFunction.put(lender, previousActor);
-            previousActor = lender;
+    /**
+     * Makes sure the actor graph have not been modified after preprocessing.
+     */
+    private void checkModificationCount() {
+        if (actorGraph.getModificationCount() != expectedModificationCount) {
+            throw new ConcurrentModificationException(
+                    "The actor graph has been modified after preprocessing.");
         }
-        
-        return new MostCostEffectiveLoan<>(actor,
-                                           collectedPrincipal,
-                                           requestedPotential,
-                                           maximumInterestRate,
-                                           solutionPotentialFunction,
-                                           directionFunction);
     }
     
+    /**
+     * Makes sure the input actor belongs to the actor graph preprocessed by 
+     * this class.
+     * 
+     * @param actor the actor to check. 
+     */
     private void checkActorBelongsToGraph(Actor<I> actor) {
         if (actorGraph != actor.getActorGraph()) {
             throw new IllegalStateException(

@@ -8,19 +8,18 @@ import static org.junit.Assert.assertNull;
 import org.junit.Test;
 
 /**
- * Tests
- * {@link net.coderodde.finance.loan.support.BinaryHeapMostCostEffectiveLoanFinder}
- * .
+ * This test class provides the common template for testing different classes
+ * extending {@link AbstractMostCostEffectiveLoanFinder}.
  * 
  * @author Rodion "rodde" Efremov
  * @version 1.6 (Mar 2, 2018)
  */
-public abstract class AbstractDefaultMostCostEffectiveLoanFinderTest {
+public abstract class AbstractMostCostEffectiveLoanFinderTest {
     
     private static final double EPSILON = 0.001;
     private final AbstractMostCostEffectiveLoanFinder<String> finder;
     
-    protected AbstractDefaultMostCostEffectiveLoanFinderTest(
+    protected AbstractMostCostEffectiveLoanFinderTest(
             AbstractMostCostEffectiveLoanFinder<String> finder) {
         this.finder = finder;
     }
